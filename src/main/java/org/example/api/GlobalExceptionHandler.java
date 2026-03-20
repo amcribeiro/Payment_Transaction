@@ -25,7 +25,18 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<?> handleIllegalArgument(IllegalArgumentException e) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("error", "BAD_REQUEST", "message", e.getMessage()));
+        if (e.getMessage().contains("not found")) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "NOT_FOUND", "message", e.getMessage()));
+        }
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "BUSINESS_RULE_VIOLATION", "message", e.getMessage()));
+    }
+    @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
+    public ResponseEntity<?> handleValidationExceptions(org.springframework.web.bind.MethodArgumentNotValidException ex) {
+        String message = ex.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(err -> err.getField() + ": " + err.getDefaultMessage())
+                .orElse("Erro de validação");
+
+        return ResponseEntity.badRequest().body(Map.of("error", "VALIDATION_ERROR", "message", message));
     }
 }

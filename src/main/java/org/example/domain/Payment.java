@@ -91,12 +91,13 @@ public class Payment {
             if (this.state == PaymentState.COMPLETED) {
                 throw new IllegalStateException("Cannot reverse PREAUTH if already COMPLETED");
             }
-            this.state = PaymentState.PREAUTH_REVERSED;
-        } else if (targetType == ReversalTarget.COMPLETION) {
+            this.state = PaymentState.PREAUTH_REVERSAL_PENDING;
+        }
+        else if (targetType == ReversalTarget.COMPLETION) {
             if (this.state != PaymentState.COMPLETED) {
                 throw new IllegalStateException("Cannot reverse COMPLETION if not COMPLETED");
             }
-            this.state = PaymentState.COMPLETION_REVERSED;
+            this.state = PaymentState.COMPLETION_REVERSAL_PENDING;
         }
     }
 

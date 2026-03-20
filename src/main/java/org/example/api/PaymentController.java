@@ -1,5 +1,6 @@
 package org.example.api;
 
+import jakarta.validation.Valid;
 import org.example.application.IdempotencyService;
 import org.example.application.PaymentService;
 import org.example.domain.Payment;
@@ -23,7 +24,7 @@ public class PaymentController {
     @PostMapping
     public ResponseEntity<?> createPayment(
             @RequestHeader(value = "Idempotency-Key") String idempotencyKey,
-            @RequestBody CreatePaymentRequest request) {
+            @Valid @RequestBody CreatePaymentRequest request) {
 
         return idempotencyService.executeIdempotent(idempotencyKey, "/payments", request, () -> {
             Payment payment = paymentService.createPayment(
@@ -36,18 +37,19 @@ public class PaymentController {
     public ResponseEntity<?> requestPreauth(
             @PathVariable("id") String paymentId,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @RequestBody OperationRequest request) {
+            @Valid @RequestBody OperationRequest request) {
 
-        return idempotencyService.executeIdempotent(idempotencyKey, "/payments/"+paymentId+"/preauth", request, () -> {
+        return idempotencyService.executeIdempotent(idempotencyKey, "/payments/" + paymentId + "/preauth", request, () -> {
             OperationResponse response = paymentService.requestPreauth(paymentId, request.amount());
             return ResponseEntity.accepted().body(response);
         });
     }
+
     @PostMapping("/{id}/sale")
     public ResponseEntity<?> requestSale(
             @PathVariable("id") String paymentId,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @RequestBody OperationRequest request) {
+            @Valid @RequestBody OperationRequest request) {
 
         return idempotencyService.executeIdempotent(
                 idempotencyKey,
@@ -59,13 +61,14 @@ public class PaymentController {
                 }
         );
     }
+
     @PostMapping("/{id}/topup")
     public ResponseEntity<?> requestTopup(
             @PathVariable("id") String paymentId,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @RequestBody OperationRequest request) {
+            @Valid @RequestBody OperationWithRefRequest request) { // ALTERADO: Usa agora OperationWithRefRequest
 
-        return idempotencyService.executeIdempotent(idempotencyKey, "/payments/"+paymentId+"/topup", request, () -> {
+        return idempotencyService.executeIdempotent(idempotencyKey, "/payments/" + paymentId + "/topup", request, () -> {
             OperationResponse response = paymentService.requestTopup(paymentId, request.amount(), request.transRef());
             return ResponseEntity.accepted().body(response);
         });
@@ -75,9 +78,9 @@ public class PaymentController {
     public ResponseEntity<?> requestCompletion(
             @PathVariable("id") String paymentId,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @RequestBody OperationRequest request) {
+            @Valid @RequestBody OperationWithRefRequest request) {
 
-        return idempotencyService.executeIdempotent(idempotencyKey, "/payments/"+paymentId+"/completion", request, () -> {
+        return idempotencyService.executeIdempotent(idempotencyKey, "/payments/" + paymentId + "/completion", request, () -> {
             OperationResponse response = paymentService.requestCompletion(paymentId, request.amount(), request.transRef());
             return ResponseEntity.accepted().body(response);
         });
@@ -87,9 +90,9 @@ public class PaymentController {
     public ResponseEntity<?> requestReversal(
             @PathVariable("id") String paymentId,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @RequestBody ReversalRequest request) {
+            @Valid @RequestBody ReversalRequest request) {
 
-        return idempotencyService.executeIdempotent(idempotencyKey, "/payments/"+paymentId+"/reversal", request, () -> {
+        return idempotencyService.executeIdempotent(idempotencyKey, "/payments/" + paymentId + "/reversal", request, () -> {
             OperationResponse response = paymentService.requestReversal(paymentId, request.target(), request.reason());
             return ResponseEntity.accepted().body(response);
         });

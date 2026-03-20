@@ -1,9 +1,9 @@
 package org.example.api;
-import java.math.BigDecimal;
 import jakarta.validation.constraints.*;
+import java.math.BigDecimal;
 
-public record OperationRequest(
+public record OperationWithRefRequest(
         @NotNull(message = "amount é obrigatório")
         @Positive(message = "amount tem de ser maior que zero") BigDecimal amount,
-        String transRef
+        @NotBlank(message = "transRef é obrigatório para esta operação") String transRef
 ) {}

@@ -5,6 +5,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -46,12 +47,13 @@ public class OutboxWorker {
                 Payment payment = paymentRepository.findById(event.getPaymentId()).orElse(null);
                 Operation op = operationRepository.findById(event.getOperationId()).orElse(null);
 
-
                 if (payment != null && op != null) {
                     String oldState = payment.getState().name();
 
                     String gatewayRef = gateway.process();
                     payment.confirmTransRef(gatewayRef);
+                    BigDecimal ledgerAmount = op.getAmount();
+                    String ledgerType = op.getType().name();
 
                     switch (op.getType()) {
                         case PREAUTH -> payment.advanceState(PaymentState.PREAUTH_AUTHORIZED);
@@ -62,47 +64,47 @@ public class OutboxWorker {
                         case COMPLETION -> payment.advanceState(PaymentState.COMPLETED);
                         case SALE -> payment.advanceState(PaymentState.SALE_COMPLETED);
                         case REVERSAL -> {
-                            // Usa o target definido na operação (Ponto 7 das notas)
                             if (op.getTarget() == ReversalTarget.COMPLETION) {
                                 payment.advanceState(PaymentState.COMPLETION_REVERSED);
+                                ledgerAmount = payment.getCompletedAmount().negate();
                             } else {
                                 payment.advanceState(PaymentState.PREAUTH_REVERSED);
+                                ledgerAmount = payment.getAuthorizedTotal().negate();
                             }
+                            ledgerType = "REVERSAL_" + op.getTarget();
                         }
                     }
 
                     historyRepository.save(new PaymentHistoryEntry(payment.getId(), oldState, payment.getState().name()));
-                    ledgerRepository.save(new LedgerEntry(payment.getId(), op.getType().name(), op.getAmount()));
+
+                    ledgerRepository.save(new LedgerEntry(payment.getId(), ledgerType, ledgerAmount));
 
                     op.setStatus(OperationStatus.SUCCEEDED);
-
                     paymentRepository.save(payment);
                     operationRepository.save(op);
-
                     event.setStatus("DONE");
                 } else {
                     event.setStatus("FAILED");
                 }
-
                 outboxRepository.save(event);
 
             } catch (PermanentGatewayException e) {
                 event.setStatus("FAILED");
                 outboxRepository.save(event);
-
             } catch (Exception e) {
-
-                event.setRetryCount(event.getRetryCount() + 1);
-
-                if (event.getRetryCount() > 3) {
-                    event.setStatus("FAILED");
-
-                } else {
-                    event.setStatus("NEW");
-                    event.setNextAttemptAt(Instant.now().plusSeconds(30));
-                }
-                outboxRepository.save(event);
+                handleRetry(event);
             }
         }
+    }
+
+    private void handleRetry(OutboxEvent event) {
+        event.setRetryCount(event.getRetryCount() + 1);
+        if (event.getRetryCount() > 3) {
+            event.setStatus("FAILED");
+        } else {
+            event.setStatus("NEW");
+            event.setNextAttemptAt(Instant.now().plusSeconds(30));
+        }
+        outboxRepository.save(event);
     }
 }

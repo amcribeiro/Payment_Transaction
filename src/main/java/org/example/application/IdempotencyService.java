@@ -30,7 +30,7 @@ public class IdempotencyService {
     public ResponseEntity<?> executeIdempotent(String idempotencyKey, String endpoint, Object requestBody, Supplier<ResponseEntity<?>> businessLogic) {
 
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
-            return businessLogic.get();
+            throw new IllegalArgumentException("Idempotency-Key header is required for this operation");
         }
 
         try {
@@ -41,11 +41,9 @@ public class IdempotencyService {
 
             if (existing != null) {
                 if (existing.getRequestHash().equals(hash)) {
-
                     return ResponseEntity.status(existing.getResponseStatus())
                             .body(existing.getResponseBody());
                 } else {
-
                     return ResponseEntity.status(HttpStatus.CONFLICT)
                             .body("{\"error\": \"IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_PAYLOAD\"}");
                 }
