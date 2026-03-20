@@ -4,6 +4,5 @@ import jakarta.validation.constraints.*;
 
 public record OperationRequest(
         @NotNull(message = "amount é obrigatório")
-        @Positive(message = "amount tem de ser maior que zero") BigDecimal amount,
-        String transRef
+        @Positive(message = "amount tem de ser maior que zero") BigDecimal amount
 ) {}
