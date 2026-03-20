@@ -1,20 +1,22 @@
 package org.example.infrastructure;
 
+import org.example.domain.OperationType;
 import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 @Component
 public class MockGateway {
 
-    public String process() {
+    public String process(OperationType type, java.math.BigDecimal amount) {
         double chance = Math.random();
 
-        if (chance < 0.15) {
-            throw new TransientGatewayException("GATEWAY_TIMEOUT - Connection lost");
+        double timeoutChance = (type == OperationType.REVERSAL) ? 0.05 : 0.15;
+        if (chance < timeoutChance) {
+            throw new TransientGatewayException("GATEWAY_TIMEOUT na operação " + type);
         }
 
         if (chance < 0.20) {
-            throw new PermanentGatewayException("HARD_GATEWAY_REJECTION - Fraud or Invalid Card");
+            throw new PermanentGatewayException("HARD_REJECTION: Fraude ou Cartão Inválido");
         }
 
         try {
@@ -22,7 +24,6 @@ public class MockGateway {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-
         return UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 }

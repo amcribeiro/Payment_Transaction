@@ -108,4 +108,7 @@ public class Payment {
     public BigDecimal getCompletedAmount() { return completedAmount; }
     public void confirmTransRef(String transRef) { this.transRef = transRef; }
     public void advanceState(PaymentState newState) { this.state = newState; }
+    public BigDecimal getRequestedAmount() { return requestedAmount; }
+    public BigDecimal getPreauthAmount() { return preauthAmount; }
+    public BigDecimal getTopupAmount() { return topupAmount; }
 }

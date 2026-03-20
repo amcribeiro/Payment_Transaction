@@ -41,8 +41,8 @@ public class IdempotencyService {
 
             if (existing != null) {
                 if (existing.getRequestHash().equals(hash)) {
-                    return ResponseEntity.status(existing.getResponseStatus())
-                            .body(existing.getResponseBody());
+                    Object body = objectMapper.readTree(existing.getResponseBody());
+                    return ResponseEntity.status(existing.getResponseStatus()).body(body);
                 } else {
                     return ResponseEntity.status(HttpStatus.CONFLICT)
                             .body("{\"error\": \"IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_PAYLOAD\"}");

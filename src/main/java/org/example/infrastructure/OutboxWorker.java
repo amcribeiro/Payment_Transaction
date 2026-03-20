@@ -50,7 +50,7 @@ public class OutboxWorker {
                 if (payment != null && op != null) {
                     String oldState = payment.getState().name();
 
-                    String gatewayRef = gateway.process();
+                    String gatewayRef = gateway.process(op.getType(), op.getAmount());
                     payment.confirmTransRef(gatewayRef);
                     BigDecimal ledgerAmount = op.getAmount();
                     String ledgerType = op.getType().name();
@@ -91,6 +91,8 @@ public class OutboxWorker {
             } catch (PermanentGatewayException e) {
                 event.setStatus("FAILED");
                 outboxRepository.save(event);
+            } catch (TransientGatewayException e) {
+                handleRetry(event);
             } catch (Exception e) {
                 handleRetry(event);
             }
